@@ -5,7 +5,7 @@ import "./App.css";
 function App() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
-  const [activeTab, setActiveTab] = useState("youtube"); // youtube | reddit
+  const [activeTab, setActiveTab] = useState("youtube");
   const [loading, setLoading] = useState(false);
 
   const searchContent = async () => {
@@ -14,23 +14,30 @@ function App() {
 
     try {
       const endpoint = activeTab === "youtube" ? "/api/youtube" : "/api/reddit";
-      const res = await axios.get(`http://localhost:5000${endpoint}`, {
+
+      // Use environment variable for backend URL
+      const BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+
+      const res = await axios.get(`${BASE_URL}${endpoint}`, {
         params: { q: query },
       });
 
       if (activeTab === "youtube") {
-        setResults(res.data.items || []);
+        setResults(Array.isArray(res.data.items) ? res.data.items : []);
       } else {
-        setResults(res.data?.data?.children || []);
+        setResults(
+          Array.isArray(res.data?.data?.children) ? res.data.data.children : []
+        );
       }
     } catch (err) {
-      console.error(err);
+      console.error("API Fetch Error:", err.message);
       setResults([]);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
+  // ✅ JSX should be returned from App component, not from searchContent
   return (
     <div className="container">
       <h1>🔍 Content Search</h1>
@@ -103,7 +110,9 @@ function App() {
               <div className="card" key={data.id}>
                 <h3>{data.title}</h3>
 
-                {isImage && <img src={url} alt={data.title} className="media" />}
+                {isImage && (
+                  <img src={url} alt={data.title} className="media" />
+                )}
                 {isVideo && (
                   <video controls className="media" src={mediaUrl}></video>
                 )}
